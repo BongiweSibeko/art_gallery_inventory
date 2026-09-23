@@ -1,2 +1,2 @@
-# No external packages are required.
-# The project uses Python's standard library, including sqlite3 and unittest.
+# AWS SDK used by the optional cloud backup/restore feature.
+boto3>=1.34,<2
