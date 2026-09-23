@@ -6,7 +6,7 @@ from gallery.artwork import Artwork
 from gallery.storage import load_inventory, save_inventory
 
 
-DATA_FILE = Path(__file__).parent / "data" / "artworks.csv"
+DATA_FILE = Path(__file__).parent / "data" / "artworks.db"
 
 
 def print_menu():

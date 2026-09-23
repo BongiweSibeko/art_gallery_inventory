@@ -37,6 +37,7 @@ def _connect(file_path):
     )
     return connection
 
+
 def save_inventory(inventory, file_path):
     """Save all artworks to a SQLite database file.
 

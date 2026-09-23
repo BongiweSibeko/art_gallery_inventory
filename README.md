@@ -7,7 +7,7 @@ This version is intentionally much simpler than a full data-engineering platform
 - Python classes and objects
 - Lists and loops
 - Functions and simple validation
-- Reading and writing CSV files
+- Reading and writing a SQLite database with Python's built-in `sqlite3` module
 - Error handling with `try` / `except`
 - Unit testing with Python's built-in `unittest`
 
@@ -21,7 +21,7 @@ The program can:
 4. Mark an artwork as sold
 5. Show the number of available and sold artworks
 6. Calculate the total value of available artworks
-7. Save and load inventory from a CSV file
+7. Save and load inventory from a SQLite database
 
 ## Project structure
 
@@ -31,9 +31,9 @@ art_gallery_inventory_entry_level/
 │   ├── __init__.py
 │   ├── artwork.py       # Artwork class
 │   ├── inventory.py     # Inventory business logic
-│   └── storage.py       # CSV save/load functions
+│   └── storage.py       # SQLite save/load functions
 ├── data/
-│   └── artworks.csv     # Sample data
+│   └── artworks.db      # Sample data
 ├── tests/
 │   ├── test_artwork.py
 │   ├── test_inventory.py
@@ -42,6 +42,17 @@ art_gallery_inventory_entry_level/
 ├── requirements.txt
 └── README.md
 ```
+
+## A note on `storage.py`
+
+The `artwork_id` column in the database is **not** set up as a primary key,
+even though IDs are supposed to be unique. That's deliberate: uniqueness is a
+rule about the *business* (an inventory shouldn't have two artworks with the
+same ID), not about the *file format*. That rule lives in
+`GalleryInventory.add_artwork`, and `load_inventory` calls that same method
+when reading rows back in — so if a `.db` file is ever hand-edited to contain
+a duplicate ID, loading it raises a clear `ValueError` instead of failing
+somewhere else, or silently letting it through.
 
 ## Requirements
 
@@ -86,7 +97,7 @@ You can also open a test file in IntelliJ IDEA or PyCharm and use the green run 
 - Selling an artwork changes its status.
 - An artwork cannot be sold twice.
 - Available inventory value is calculated correctly.
-- Inventory can be saved to and loaded from CSV.
+- Inventory can be saved to and loaded from a SQLite database.
 
 ## Possible beginner extensions
 
@@ -96,16 +107,16 @@ Once the basic project is comfortable, you can add:
 - Update an artwork's price
 - Sort artworks by price
 - Add a simple login
-- Replace CSV storage with SQLite
+- Add a second table (e.g. exhibitions) and query across both
 - Build a small Flask web interface
 
 ## Unit Tests
 
-The project includes ** unit tests** using Python's built-in `unittest` module.
+The project includes **89 unit tests** using Python's built-in `unittest` module.
 
 - `tests/test_artwork.py` - artwork validation, status, formatting, and dictionary conversion
 - `tests/test_inventory.py` - adding, finding, searching, selling, removing, counting, and inventory value
-- `tests/test_storage.py` - CSV saving/loading, file creation, data preservation, and invalid data
+- `tests/test_storage.py` - SQLite saving/loading, file creation, data preservation, and invalid data
 
 Run the complete test suite with:
 
@@ -113,4 +124,4 @@ Run the complete test suite with:
 python -m unittest discover -s tests -v
 ```
 
-Expected result: `Ran tests` followed by `OK`.
+Expected result: `Ran 89 tests` followed by `OK`.
