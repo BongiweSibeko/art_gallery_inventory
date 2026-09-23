@@ -62,23 +62,29 @@ def save_inventory(inventory, file_path):
 
 
 def load_inventory(file_path):
-    """Load artworks from a CSV file into a GalleryInventory object."""
+    """Load artworks from a SQLite database file into a GalleryInventory object."""
     inventory = GalleryInventory()
     path = Path(file_path)
 
     if not path.exists():
         return inventory
 
-    with path.open("r", newline="", encoding="utf-8") as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            artwork = Artwork(
-                row["artwork_id"],
-                row["title"],
-                row["artist"],
-                float(row["price"]),
-                row["status"],
-            )
-            inventory.add_artwork(artwork)
+    connection = _connect(path)
+    try:
+        rows = connection.execute(
+            f"SELECT artwork_id, title, artist, price, status FROM {TABLE_NAME}"
+        ).fetchall()
+    finally:
+        connection.close()
+
+    for row in rows:
+        artwork = Artwork(
+            row["artwork_id"],
+            row["title"],
+            row["artist"],
+            row["price"],
+            row["status"],
+        )
+        inventory.add_artwork(artwork)
 
     return inventory
