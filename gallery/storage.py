@@ -38,15 +38,27 @@ def _connect(file_path):
     return connection
 
 def save_inventory(inventory, file_path):
-    """Save all artworks to a CSV file."""
+    """Save all artworks to a SQLite database file.
+
+    Any artworks already stored at this path are replaced - this mirrors
+    the old CSV behaviour, where saving always rewrote the whole file.
+    """
     path = Path(file_path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    with path.open("w", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=FIELDNAMES)
-        writer.writeheader()
-        for artwork in inventory.artworks:
-            writer.writerow(artwork.to_dict())
+    connection = _connect(path)
+    try:
+        connection.execute(f"DELETE FROM {TABLE_NAME}")
+        connection.executemany(
+            f"""
+            INSERT INTO {TABLE_NAME} (artwork_id, title, artist, price, status)
+            VALUES (:artwork_id, :title, :artist, :price, :status)
+            """,
+            [artwork.to_dict() for artwork in inventory.artworks],
+        )
+        connection.commit()
+    finally:
+        connection.close()
 
 
 def load_inventory(file_path):
