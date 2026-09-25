@@ -1,15 +1,17 @@
 # Art Gallery Inventory Tracker
 
-A beginner-friendly Python project for managing artwork in a small gallery.
+A beginner-friendly Python project for managing artwork in a small gallery. It now includes an optional **cloud-computing feature** for backing up and restoring the SQLite inventory database with **Amazon S3**.
 
-This version is intentionally much simpler than a full data-engineering platform. It focuses on entry-level skills that are easier to explain in an interview or assessment:
+## Skills demonstrated
 
 - Python classes and objects
-- Lists and loops
-- Functions and simple validation
-- Reading and writing a SQLite database with Python's built-in `sqlite3` module
+- Lists, loops, functions, and validation
+- SQLite with Python's built-in `sqlite3` module
 - Error handling with `try` / `except`
-- Unit testing with Python's built-in `unittest`
+- Unit testing with `unittest`
+- Cloud object storage with Amazon S3
+- Environment variables for cloud configuration
+- Separation between local storage and cloud storage
 
 ## Features
 
@@ -19,9 +21,10 @@ The program can:
 2. Add a new artwork
 3. Search for artworks by artist
 4. Mark an artwork as sold
-5. Show the number of available and sold artworks
-6. Calculate the total value of available artworks
-7. Save and load inventory from a SQLite database
+5. Show inventory totals and available value
+6. Save and load inventory from a local SQLite database
+7. Back up the SQLite database to Amazon S3
+8. Restore the SQLite database from Amazon S3
 
 ## Project structure
 
@@ -29,99 +32,126 @@ The program can:
 art_gallery_inventory_entry_level/
 ├── gallery/
 │   ├── __init__.py
-│   ├── artwork.py       # Artwork class
-│   ├── inventory.py     # Inventory business logic
-│   └── storage.py       # SQLite save/load functions
+│   ├── artwork.py
+│   ├── inventory.py
+│   ├── storage.py          # Local SQLite storage
+│   └── cloud_storage.py    # AWS S3 backup/restore
 ├── data/
-│   └── artworks.db      # Sample data
+│   └── artworks.db
 ├── tests/
 │   ├── test_artwork.py
 │   ├── test_inventory.py
-│   └── test_storage.py
-├── main.py              # Console application
+│   ├── test_storage.py
+│   └── test_cloud_storage.py
+├── main.py
 ├── requirements.txt
 └── README.md
 ```
 
-## A note on `storage.py`
-
-The `artwork_id` column in the database is **not** set up as a primary key,
-even though IDs are supposed to be unique. That's deliberate: uniqueness is a
-rule about the *business* (an inventory shouldn't have two artworks with the
-same ID), not about the *file format*. That rule lives in
-`GalleryInventory.add_artwork`, and `load_inventory` calls that same method
-when reading rows back in — so if a `.db` file is ever hand-edited to contain
-a duplicate ID, loading it raises a clear `ValueError` instead of failing
-somewhere else, or silently letting it through.
-
 ## Requirements
 
-- Python 3.10 or newer is recommended.
-- No external packages are required.
+- Python 3.10 or newer
+- `boto3` for AWS S3 cloud support
 
-## Run the program
-
-From the project folder:
+Install dependencies:
 
 ```bash
-python main.py
+python3 -m pip install -r requirements.txt
 ```
 
-On some Linux systems, use:
+## Run locally
 
 ```bash
 python3 main.py
 ```
 
-## Run the unit tests
+The normal local inventory features work with the SQLite database in `data/artworks.db`.
 
-```bash
-python -m unittest discover -s tests -v
+## Configure cloud backup
+
+The project deliberately does **not** store AWS passwords or secret keys in source code.
+
+### 1. Create an S3 bucket
+
+Create an Amazon S3 bucket in your AWS account, for example:
+
+```text
+my-art-gallery-backups
 ```
 
-or:
+### 2. Configure AWS credentials
+
+You can use the AWS CLI:
+
+```bash
+aws configure
+```
+
+Or use standard AWS environment variables / IAM credentials. `boto3` automatically follows the normal AWS credential chain.
+
+### 3. Set the bucket name
+
+On Linux/macOS:
+
+```bash
+export ART_GALLERY_S3_BUCKET="my-art-gallery-backups"
+```
+
+Optional: change the object key used inside the bucket:
+
+```bash
+export ART_GALLERY_S3_KEY="backups/artworks.db"
+```
+
+The default key is already `backups/artworks.db`, so this second variable is optional.
+
+### 4. Run the application
+
+```bash
+python3 main.py
+```
+
+Choose:
+
+- **6** to back up the current SQLite inventory to S3.
+- **7** to restore the inventory from S3.
+
+## How the cloud feature works
+
+The application still uses SQLite locally. When a cloud backup is requested:
+
+```text
+GalleryInventory
+      |
+      v
+SQLite database (local)
+      |
+      v
+cloud_storage.py
+      |
+      v
+Amazon S3 bucket (cloud)
+```
+
+This is a simple example of **hybrid storage**: the application can work locally while keeping a remote cloud backup for durability and recovery.
+
+## Run tests
 
 ```bash
 python3 -m unittest discover -s tests -v
 ```
 
-You can also open a test file in IntelliJ IDEA or PyCharm and use the green run button next to a test class or test method once the Python SDK is configured.
+The S3 unit tests use a fake S3 client, so running the test suite does **not** upload anything to AWS and does not require cloud credentials.
 
-## Example concepts covered by the tests
+## Security notes
 
-- New artworks start as available.
-- Negative prices are rejected.
-- Duplicate artwork IDs are rejected.
-- An artwork can be found by its ID.
-- Artist searches are case-insensitive.
-- Selling an artwork changes its status.
-- An artwork cannot be sold twice.
-- Available inventory value is calculated correctly.
-- Inventory can be saved to and loaded from a SQLite database.
+- Do not hard-code AWS access keys in Python files.
+- Do not commit `.env`, credential files, or secret keys to Git.
+- Give the AWS user/role only the S3 permissions it needs.
+- Use a private S3 bucket unless there is a specific reason to make data public.
 
-## Possible beginner extensions
+## Interview explanation
 
-Once the basic project is comfortable, you can add:
+You can describe the feature like this:
 
-- Search by title
-- Update an artwork's price
-- Sort artworks by price
-- Add a simple login
-- Add a second table (e.g. exhibitions) and query across both
-- Build a small Flask web interface
-
-## Unit Tests
-
-The project includes **89 unit tests** using Python's built-in `unittest` module.
-
-- `tests/test_artwork.py` - artwork validation, status, formatting, and dictionary conversion
-- `tests/test_inventory.py` - adding, finding, searching, selling, removing, counting, and inventory value
-- `tests/test_storage.py` - SQLite saving/loading, file creation, data preservation, and invalid data
-
-Run the complete test suite with:
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-Expected result: `Ran 89 tests` followed by `OK`.
+> "The application stores its active inventory in a local SQLite database. I added a cloud layer using Amazon S3 so the database can be backed up remotely and restored after local data loss. I kept credentials outside the source code using AWS's standard credential system and environment variables, and I used dependency injection in the cloud-storage class so I could unit-test it without making real network requests."
