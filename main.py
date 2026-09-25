@@ -1,12 +1,15 @@
 """Command-line program for the Art Gallery Inventory Tracker."""
 
+import os
 from pathlib import Path
 
 from gallery.artwork import Artwork
+from gallery.cloud_storage import CloudStorageError, S3CloudStorage
 from gallery.storage import load_inventory, save_inventory
 
 
 DATA_FILE = Path(__file__).parent / "data" / "artworks.db"
+DEFAULT_CLOUD_KEY = "backups/artworks.db"
 
 
 def print_menu():
@@ -16,7 +19,9 @@ def print_menu():
     print("3. Search by artist")
     print("4. Sell artwork")
     print("5. View inventory summary")
-    print("6. Exit")
+    print("6. Back up inventory to cloud")
+    print("7. Restore inventory from cloud")
+    print("8. Exit")
 
 
 def view_all(inventory):
@@ -70,6 +75,42 @@ def show_summary(inventory):
     print(f"Available inventory value: R{inventory.total_available_value():,.2f}")
 
 
+def _cloud_storage_from_environment():
+    """Create cloud storage using settings kept outside the source code."""
+    bucket_name = os.getenv("ART_GALLERY_S3_BUCKET", "").strip()
+    if not bucket_name:
+        raise CloudStorageError(
+            "ART_GALLERY_S3_BUCKET is not set. Set it to your S3 bucket name first."
+        )
+    return S3CloudStorage(bucket_name)
+
+
+def backup_to_cloud(inventory):
+    """Save the latest data locally, then upload the SQLite file to S3."""
+    try:
+        save_inventory(inventory, DATA_FILE)
+        cloud = _cloud_storage_from_environment()
+        key = os.getenv("ART_GALLERY_S3_KEY", DEFAULT_CLOUD_KEY)
+        cloud.backup_file(DATA_FILE, key)
+        print(f"Cloud backup completed: s3://{cloud.bucket_name}/{key.lstrip('/')}")
+    except (CloudStorageError, FileNotFoundError, ValueError) as error:
+        print(f"Could not create cloud backup: {error}")
+
+
+def restore_from_cloud():
+    """Download the SQLite database from S3 and load it into memory."""
+    try:
+        cloud = _cloud_storage_from_environment()
+        key = os.getenv("ART_GALLERY_S3_KEY", DEFAULT_CLOUD_KEY)
+        cloud.restore_file(DATA_FILE, key)
+        inventory = load_inventory(DATA_FILE)
+        print("Cloud backup restored successfully.")
+        return inventory
+    except (CloudStorageError, ValueError) as error:
+        print(f"Could not restore cloud backup: {error}")
+        return None
+
+
 def main():
     inventory = load_inventory(DATA_FILE)
 
@@ -88,11 +129,17 @@ def main():
         elif choice == "5":
             show_summary(inventory)
         elif choice == "6":
+            backup_to_cloud(inventory)
+        elif choice == "7":
+            restored_inventory = restore_from_cloud()
+            if restored_inventory is not None:
+                inventory = restored_inventory
+        elif choice == "8":
             save_inventory(inventory, DATA_FILE)
             print("Inventory saved. Goodbye!")
             break
         else:
-            print("Please choose a number from 1 to 6.")
+            print("Please choose a number from 1 to 8.")
 
 
 if __name__ == "__main__":
