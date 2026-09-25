@@ -124,6 +124,8 @@ The S3 tests use a fake S3 client, so running the suite doesn't upload anything 
 - The AWS user/role only needs the S3 permissions it actually uses.
 - Use a private S3 bucket unless there's a specific reason to make the data public.
 
+WTC Proof: WTC-ABC6PJFK
+
 ## How I'd explain this feature
 
 The application stores its active inventory in a local SQLite database. I added a cloud layer using Amazon S3 so the database can be backed up remotely and restored after local data loss. I kept credentials outside the source code using AWS's standard credential system and environment variables, and I used dependency injection in the cloud-storage class so I could unit-test it without making real network requests.
