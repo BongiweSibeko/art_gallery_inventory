@@ -124,7 +124,8 @@ The S3 tests use a fake S3 client, so running the suite doesn't upload anything 
 - The AWS user/role only needs the S3 permissions it actually uses.
 - Use a private S3 bucket unless there's a specific reason to make the data public.
 
-WTC Proof: WTC-ABC6PJFK
+WTC Proof for Cloud Computing: WTC-ABC6PJFK
+WTC Proof for Data Engineering: WTC-CVPCHCWR
 
 ## How I'd explain this feature
 
