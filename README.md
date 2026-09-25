@@ -1,8 +1,8 @@
 # Art Gallery Inventory Tracker
 
-A beginner-friendly Python project for managing artwork in a small gallery. It now includes an optional **cloud-computing feature** for backing up and restoring the SQLite inventory database with **Amazon S3**.
+A Python project for managing artwork in a small gallery. It also includes an optional cloud-computing feature for backing up and restoring the SQLite inventory database with Amazon S3.
 
-## Skills demonstrated
+## What it covers
 
 - Python classes and objects
 - Lists, loops, functions, and validation
@@ -29,7 +29,7 @@ The program can:
 ## Project structure
 
 ```text
-art_gallery_inventory_entry_level/
+art_gallery_inventory/
 ├── gallery/
 │   ├── __init__.py
 │   ├── artwork.py
@@ -65,60 +65,34 @@ python3 -m pip install -r requirements.txt
 python3 main.py
 ```
 
-The normal local inventory features work with the SQLite database in `data/artworks.db`.
+The local inventory features work with the SQLite database in `data/artworks.db` — no cloud setup needed for that part.
 
-## Configure cloud backup
+## Cloud backup setup
 
-The project deliberately does **not** store AWS passwords or secret keys in source code.
+The cloud backup feature assumes an S3 bucket already exists and that AWS credentials are available through the normal channels — `aws configure`, environment variables, or an IAM role. `boto3` picks these up automatically, so the app never stores AWS keys itself.
 
-### 1. Create an S3 bucket
-
-Create an Amazon S3 bucket in your AWS account, for example:
-
-```text
-my-art-gallery-backups
-```
-
-### 2. Configure AWS credentials
-
-You can use the AWS CLI:
-
-```bash
-aws configure
-```
-
-Or use standard AWS environment variables / IAM credentials. `boto3` automatically follows the normal AWS credential chain.
-
-### 3. Set the bucket name
-
-On Linux/macOS:
+Point the app at the bucket:
 
 ```bash
 export ART_GALLERY_S3_BUCKET="my-art-gallery-backups"
 ```
 
-Optional: change the object key used inside the bucket:
+Optionally override where the backup lives inside the bucket:
 
 ```bash
 export ART_GALLERY_S3_KEY="backups/artworks.db"
 ```
 
-The default key is already `backups/artworks.db`, so this second variable is optional.
+(`backups/artworks.db` is already the default, so this only matters if you want to change it.)
 
-### 4. Run the application
+Then run the app and choose:
 
-```bash
-python3 main.py
-```
-
-Choose:
-
-- **6** to back up the current SQLite inventory to S3.
-- **7** to restore the inventory from S3.
+- **6** to back up the current SQLite inventory to S3
+- **7** to restore the inventory from S3
 
 ## How the cloud feature works
 
-The application still uses SQLite locally. When a cloud backup is requested:
+The application always uses SQLite locally. When a cloud backup is requested:
 
 ```text
 GalleryInventory
@@ -133,7 +107,7 @@ cloud_storage.py
 Amazon S3 bucket (cloud)
 ```
 
-This is a simple example of **hybrid storage**: the application can work locally while keeping a remote cloud backup for durability and recovery.
+It's a simple hybrid storage setup: the app works fully on its own locally, and the S3 backup is there for durability and recovery if the local file is ever lost.
 
 ## Run tests
 
@@ -141,17 +115,15 @@ This is a simple example of **hybrid storage**: the application can work locally
 python3 -m unittest discover -s tests -v
 ```
 
-The S3 unit tests use a fake S3 client, so running the test suite does **not** upload anything to AWS and does not require cloud credentials.
+The S3 tests use a fake S3 client, so running the suite doesn't upload anything to AWS and doesn't need real cloud credentials.
 
 ## Security notes
 
-- Do not hard-code AWS access keys in Python files.
-- Do not commit `.env`, credential files, or secret keys to Git.
-- Give the AWS user/role only the S3 permissions it needs.
-- Use a private S3 bucket unless there is a specific reason to make data public.
+- No AWS access keys are hard-coded in the Python files.
+- `.env` files, credential files, and secret keys are not committed to Git.
+- The AWS user/role only needs the S3 permissions it actually uses.
+- Use a private S3 bucket unless there's a specific reason to make the data public.
 
-## Interview explanation
+## How I'd explain this feature
 
-You can describe the feature like this:
-
-> "The application stores its active inventory in a local SQLite database. I added a cloud layer using Amazon S3 so the database can be backed up remotely and restored after local data loss. I kept credentials outside the source code using AWS's standard credential system and environment variables, and I used dependency injection in the cloud-storage class so I could unit-test it without making real network requests."
+The application stores its active inventory in a local SQLite database. I added a cloud layer using Amazon S3 so the database can be backed up remotely and restored after local data loss. I kept credentials outside the source code using AWS's standard credential system and environment variables, and I used dependency injection in the cloud-storage class so I could unit-test it without making real network requests.
